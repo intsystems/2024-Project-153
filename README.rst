@@ -15,16 +15,16 @@
 
 .. class:: center
 
-    :Название исследуемой задачи: Мое название работы
-    :Тип научной работы: M1P/НИР/CoIS
-    :Автор: Имя Отчество Фамилия
-    :Научный руководитель: степень, Фамилия Имя Отчество
-    :Научный консультант(при наличии): степень, Фамилия Имя Отчество
+    :Название исследуемой задачи: Погружение временных рядов с высокой волатильностью в метрическое пространство
+    :Тип научной работы: M1P
+    :Автор: Алтай Эльшан оглы Эйнуллаев
+    :Научный руководитель: доцент, Стрижов Вадим Викторович
+    :Научный консультант(при наличии): Яковлев Константин
 
 Abstract
 ========
 
-Purus sit amet luctus venenatis lectus magna fringilla. Condimentum id venenatis a condimentum vitae sapien. Auctor neque vitae tempus quam pellentesque nec nam aliquam. Eget egestas purus viverra accumsan in. Nam aliquam sem et tortor. Donec et odio pellentesque diam volutpat commodo. Odio pellentesque diam volutpat commodo sed egestas. Sit amet dictum sit amet justo. Pellentesque sit amet porttitor eget. Imperdiet sed euismod nisi porta lorem mollis aliquam ut. Quis varius quam quisque id diam vel quam elementum. Ornare lectus sit amet est placerat in. Vulputate dignissim suspendisse in est ante. Elit sed vulputate mi sit amet mauris. Egestas sed tempus urna et pharetra pharetra. Viverra tellus in hac habitasse platea dictumst vestibulum rhoncus.
+Рассматривается задача предсказания финансовых временных рядов. Основными особенностями таких временных рядов являются высокая волатильность и высокая попарная ковариация. Классическим подходом к решению задачи является выполнение прогноза в исходном пространстве. Новый метод заключается в переходе в пространство попарных расстояний между временными рядами, осуществлении прогноза в нем и переходе обратно в исходное пространство. Для его реализации необходимо ввести функцию расстояния между временными рядами (метрику), которая должна удовлетворять определенным свойствам. В данной статье изучаются  эти свойства и проводятся сравнения различных метрик на основе численных экспериментов.
 
 Research publications
 ===============================
