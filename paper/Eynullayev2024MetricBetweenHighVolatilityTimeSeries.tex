@@ -1,12 +1,12 @@
 \documentclass{article}
 \usepackage{arxiv}
 
-\usepackage[utf8]{inputenc}
-\usepackage[english, russian]{babel}
-\usepackage[T1]{fontenc}
+\usepackage[T2A]{fontenc}			
+\usepackage[utf8]{inputenc}			
+\usepackage[english,russian]{babel}	
+\usepackage{amsmath,amsfonts,amssymb,amsthm,mathrsfs,mathtools} 
 \usepackage{url}
 \usepackage{booktabs}
-\usepackage{amsfonts}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{lipsum}
@@ -82,6 +82,119 @@ pdfkeywords={First keyword, Second keyword, More},
 В качестве простейшей метрики рассматривается ковариация между временными рядами. \cite{Boyd} Таким образом, для набора временных рядов получаем матрицу ковариации. Стоит заметить, что матрица ковариации (матрица попарных расстояний) вычисляется в каждый момент времени. Альтернативные варианты метрики выбираются из класса ядер \cite{shawe2004kernel}.
 
 Численные эксперименты проводятся на трех видах данных: синтетические, сигналы коры головного мозга, финансовые временные ряды. Эксперимент состоит из выполнения прогноза временного ряда при помощи прогнозирования матрицы попарных расстояний. В качестве прогностической модели выбирается линейная регрессия с использованием SSA (англ. Singular Spectrum Analysis) \cite{vautard1992singular}. По результатам экспериментов проводится анализ точности прогноза и его устойчивости в зависимости от выбранной метрики и вида данных. Цель эксперимента состоит в оптимальном выборе функции попарных расстояний для выполнения прогноза.
+
+\section{Problem statement}
+
+Пусть \text{X} $ = \{\mathbf{x} = [x_1, \ldots, x_\text{N}] | x_i \in R\}$ --- множество временных рядов, заданных своей реализацией. Обозначим через 
+
+\begin{equation}
+    \chi = [x^{(1)}, \ldots, x^{(n)}]^T
+\end{equation}
+
+заданный набор из $s$ временных рядов. Через $\chi_t = [x_t^{(1)}, \ldots, x_t^{(n)}]^T$
+обозначим значение ряда $\chi$ в момент времени $t$. Определим функцию расстояния между временными рядами: $d : \text{X} \times \text{X} \rightarrow R$, удовлетворяющую условиям Мерсера \cite{ghojogh2021reproducing}. Обозначим расстояние между временными рядами $x^{(i)} = [x_1^{(i)}, \ldots, x_t^{(i)}], x^{(j)} = [x^{(j)}_1, \ldots, x^{(j)}_t]$ следующим образом:
+
+\begin{equation}
+    d(x^{(i)}, x^{(j)}) = d_t(i, j)
+\end{equation}
+
+Таким образом, в каждый момент времени $t$ ряду $\text{X}$ поставлена в соответствие матрица попарных расстояний $\Sigma_t \in \mathcal{S}_n^+$ (симметричная, положительно полуопределенная матрица):
+
+\begin{equation}
+    \chi_t \Rightarrow \Sigma_t = \left(
+\begin{array}{cccc}
+d_t(x^{(1)}, x^{(1)}) & d_t(x^{(1)}, x^{(2)}) & \ldots & d(x_t^{(1)}, x^{(n)})\\
+d_t(x^{(2)}, x^{(1)}) & d_t(x^{(2)}, x^{(2)}) & \ldots & d_t(x^{(2)}, x^{(n)})\\
+\vdots & \vdots & \ddots & \vdots\\
+d_t(x^{(n)}, x^{(1)}) & d_t(x^{(n)}, x^{(2)}) & \ldots & d_t(x^{(n)}, x^{(n)})\\
+\end{array}
+\right)
+\end{equation}
+
+Дадим описание двум используемым прогностическим моделям:
+
+\subsection{Прогнозирование}
+
+\subsubsection{Авторегрессия}
+
+Пусть имеем реализацию матрицы попарных расстояний из \text{N} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{N}]$. Пусть $\Sigma_{\text{N} + 1}$ - прогнозируемая матрица. Авторегрессионная модель:
+
+\begin{equation}
+    \hat{\Sigma}_{\text{N} + 1} = \sum\limits_{i = 1}^N a_i\Sigma_{i} + \epsilon_{\text{N} + 1}
+\end{equation}
+
+где $a_1, \ldots, a_\text{N}$ --- параметры модели (коэффициенты авторегрессии), $\epsilon_{\text{N} + 1} \in R^{\text{N} \times \text{N}}$ --- белый шум. Вектор параметров определяется с помощью решения задачи оптимизации:
+
+\begin{equation}
+    a = \arg\min\limits_{a}\|\Sigma_{\text{N} + 1} - \hat{\Sigma}_{\text{N} + 1}\|_F^2
+\end{equation}
+
+\subsubsection{Многомерная гусеница (MSSA)}
+
+Пусть имеем реализацию матрицы попарных расстояний из \text{N} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{N}]$. Определим \textbf{L} - ширина окна, \text{K} $ = \textbf{N} - \text{L} + 1$. В силу того, что матрица симметричная, то для каждой компоненты матрицы попарных расстояний, где $i \leqslant j$, построим матрицу траекторий (матрица Генкеля):
+
+\begin{equation}
+    \text{H}_{ij} = \left(
+\begin{array}{cccc}
+d_1(x^{(i)}, x^{(j)}) & d_2(x^{(i)}, x^{(j)}) & \ldots & d_{\text{K}}(x^{(i)}, x^{(j)})\\
+d_2(x^{(i)}, x^{(j)}) & d_3(x^{(i)}, x^{(j)}) & \ldots & d_{\text{K} + 1}(x^{(i)}, x^{(j)})\\
+\vdots & \vdots & \ddots & \vdots\\
+d_{\text{L}}(x^{(i)}, x^{(j)}) & d_{\text{L} + 1}(x^{(i)}, x^{(j)}) & \ldots & d_\text{N}(x^{(i)}, x^{(j)})\\
+\end{array}
+\right).
+\end{equation}
+
+Строим блочную матрицу траекторий:
+
+\begin{equation}
+    \text{H} = [\text{H}_{11} : \text{H}_{12} : \text{H}_{13} : \text{H}_{1s} : \text{H}_{22} : \ldots : \text{H}_{ss}]
+\end{equation}
+
+Сингулярное разложение симметричной, положительно полуопределенной матрицы $\text{HH}^T = \text{U}\Lambda\text{U}^T$, где $\Lambda$ - диагональная матрица $L \times L$ собственных значений $\lambda_1 \geq \ldots \geq \lambda_L$, $\text{U} = [\text{u}_1, \ldots, \text{u}_L]$ - ортогональная матрица собственных векторов матрицы $\text{HH}^T$. Пусть $d = \max\{i|\lambda_i > 0, i \in \{1, \ldots, \text{L}\}\}$. Тогда исходную матрицу траекторий можно представить в виде:
+
+\begin{equation}
+    \text{H} = \sum\limits_{i = 1}^d\sqrt{\lambda_i}u_iv_i^T = \text{H}^{(1)} + \ldots + \text{H}^{(d)} = \sum\limits_{i = 1}^r \text{H}^{(i)} + \sum\limits_{i = r + 1}^d \text{H}^{(i)},
+\end{equation}
+
+ где $v_i = H^Tu_i/\sqrt{\lambda_i}$ $\text{H}_r = \sum\limits_{i = 1}^{r} \text{H}^{(i)}$ --- сигнальные компоненты, а $\text{H} - \text{H}_r$ --- 
+шумовые. Полученную матрицу можно представить в виде:
+
+\begin{equation}
+    \text{H}_r = [ \widetilde{\text{H}}_{11} : \widetilde{\text{H}}_{12} : \ldots : \widetilde{\text{H}}_{ss}]
+\end{equation}
+
+где каждая из матриц $\widetilde{\text{H}}_{ij} \in R^{\text{N} - \text{L} + 1 \times \text{L}}$. Восстановим исходные расстояния с помощью антидиагонального усреднения элементов соответствующих матриц:
+
+\begin{equation}
+    \widetilde{d}_t(i, j) = \dfrac{1}{2t - 1} \sum\limits_{k, l: k + l - 1 = t} \widetilde{h}^{(ij)}_{kl}, t \in \{1, \ldots, N\}
+\end{equation}
+
+где $\widetilde{h}^{(ij)}_{kl}$ --- элемент на пересечении $k$-ой строки и $l$-го столбца матрицы $H_{ij}$. Обозначим через $u^{\triangledown}_j$ $\text{L - 1}$ первые компоненты собственного вектора $u_j$, а $\pi_j$ --- последнюю компоненту вектора $u_j$, ($j = 1, \ldots, r$). Определим $v^2 = \sum\limits_{j = 1}^r \pi_{j}^2$ и:
+
+\begin{equation}
+    \mathcal{R} = \dfrac{1}{1 - v^2} \sum\limits_{j = 1}^r\pi_ju_j^{\triangledown}.
+\end{equation}
+
+При $v^2 < 1$ возможен прогроз:
+\begin{equation}
+    [d_{\text{N} + 1}(1, 1), d_{\text{N} + 1}(1, 2), \ldots, d_{\text{N} + 1}(s, s)] = \mathcal{R}^TZ
+\end{equation}
+
+где $Z = [Z^{(11)}, \ldots, Z^{(ss)}]^T$, $Z^{(ij)} = [\widetilde{d}_{\text{N} - \text{L} + 2}(i, j), \ldots, \widetilde{d}_{\text{N}}(i, j)]$.
+
+\subsection{Выбор функции попарных расстояний}
+
+Пусть $\mathcal{F} = \{d^{(1)}, \ldots, d^{(s)}\}$ --- множество функций попарных расстояний, из которого нужно выбрать оптимальный вариант. Пусть $\hat{\Sigma}(d)$ --- спрогнозированная, а $\Sigma(d)$ --- точная матрица попарных расстояний при использовании $d \in \mathcal{F}$. Тогда оптимальный по точности выбор функции попарных расстояний:
+
+\begin{equation}
+    d_{\text{acc}} = \arg\min\limits_{d \in \mathcal{F}} \sigma^2(d) = \arg\min\limits_{d \in \mathcal{F}} \|\hat{\Sigma}(d) - \Sigma(d)\|_{\text{F}}^2.
+\end{equation}
+
+Пусть $\widetilde{x}^{(i)} = x^{(i)} + \varepsilon_i$, $i = 1, \ldots, n$ --- зашумленный исходный набор временных рядов, где $\varepsilon_i \in R^\text{N}$. Пусть $\widetilde{\sigma}^2(d)$ --- точность прогноза матрицы попарных расстояний зашумленного набора временных рядов при использовании $d \in \mathcal{F}$. Тогда наболее устойчивый выбор функции попарных расстояний:
+
+\begin{equation}
+    d_{\text{stable}} = \arg\min\limits_{d \in \text{F}}|\widetilde{\sigma}^2(d) - \sigma^2(d)|
+\end{equation}
 
 \bibliographystyle{unsrt}
 \bibliography{biblio}
