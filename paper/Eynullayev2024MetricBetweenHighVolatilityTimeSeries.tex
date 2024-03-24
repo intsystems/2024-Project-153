@@ -267,6 +267,80 @@ d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{
 \label{fig:AR2sines}
 \end{figure}
 
+\subsection{LSTM}
+
+В этом случае прогнозировались синтетические и реальные наборы временных рядов с высокой попарной корреляцией. Количество временных рядов в наборе в обоих случаях равно $n = 24$. В качестве синтетических данных снова выступают смещенные относительно друг друга, зашумленные синусы различных амплитуд. В качестве реального датасета --- цены на электричество.
+
+\subsubsection{Синтетические данные}
+
+Приведем матрицу корреляции синтетического набора временных рядов, чтобы убедиться в том, что сделанное выше предположение выполняется:
+
+
+\begin{figure}[!htbp]
+\centering
+{\includegraphics[width=10cm]{images/htmap_sine.png} }
+\caption{Матрица корреляции синтетического набора временных рядов}
+\label{fig:Heatsine}
+\end{figure}
+
+\newpage
+
+ Изобразим на графике результат прогноза двух временных рядов из набора:
+
+\begin{figure}[!htbp]
+\centering
+{\includegraphics[width=10cm]{images/LSTM_sine.png} }
+\caption{Прогнозирование набора зашумленных синусов с помощью LSTM}
+\label{fig:LSTMsine}
+\end{figure}
+
+Приведем средние ошибки MAPE и MSE прогноза:
+
+\begin{equation}
+    \text{MAPE} \approx 0.94
+\end{equation}
+
+\begin{equation}
+    \text{MSE} \approx 1.36
+\end{equation}
+
+\subsubsection{Реальные данные}
+
+Снова приведем матрицу корреляции набора цен на электричество, чтобы убедиться в том, что сделанное выше предположение о высокой попарной корреляции выполняется:
+
+\begin{figure}[!htbp]
+\centering
+{\includegraphics[width=10cm]{images/htmap_price.png} }
+\caption{Матрица корреляции набора цен на электричество}
+\label{fig:Heatprice}
+\end{figure}
+
+ Изобразим на графике результат прогноза двух временных рядов из набора:
+
+\begin{figure}[h]
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/price_1st.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/price_2nd.png}
+  \end{minipage}
+  \caption{Результат прогнозирования на примере двух временных рядов из набора}
+\end{figure}
+
+Приведем средние ошибки MAE и MSE прогноза:
+
+\begin{equation}
+    \text{MAE} \approx 28.3
+\end{equation}
+
+\begin{equation}
+    \text{MSE} \approx 1616.6
+\end{equation}
+
+Высокая ошибка MSE связана с тем, что в данных, как можно заметить на Pис. 8, имеются очень большие скачки цен. Таким образом, ошибка MAE более информативна.
+
 \bibliographystyle{unsrt}
 \bibliography{biblio}
 
