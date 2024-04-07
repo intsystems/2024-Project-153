@@ -459,6 +459,8 @@ $i$-й столбец матрицы $\textbf{X}$ обозначим через 
 
 Демонстрация прогноза для двух рядов из набора:
 
+\newpage
+
 \begin{figure}[h]
   \begin{minipage}{0.5\textwidth}
     \centering
@@ -480,6 +482,79 @@ $i$-й столбец матрицы $\textbf{X}$ обозначим через 
     \caption{Прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
   \end{minipage}\hfill
 \end{figure}
+
+2. Реальные данные 
+
+Рассмотрим уже прогнозируемый реальный набор из $n = 24$ высоко коррелированных временных рядов. Матрицу попарных расстояний будем считать по $L = 10$ предыдущим значениям. Преобразованный набор попарных расстояний состоит из $\dfrac{24^2 - 24}{2} = 276$ временных рядов. Проведем прогноз с помощью LSTM, поделив ряд на обучающую и тестовую выборку в отношении $7 : 3$. Получаем следующие средние ошибки прогнозов:
+
+\begin{equation}
+    \text{MAE}_1 = 895.2, \text{MSE}_1 = 3265375.3
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_2 = 152.8, \text{MSE}_2 = 215891.3
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_3 = 0.11, \text{MSE}_3 = 0.03
+\end{equation}
+
+Большие ошибки MSE в первых двух случаях связаны с наличием больших скачков в исходных данных. В силу высокой корреляции исходных рядов, ряды попарных расстояний очень схожи:
+
+\newpage
+
+\begin{figure}[h]
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/real_corr_1.png}
+    \caption{Прогноз попарных расстояний при 1-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/real_corr_2.png}
+    \caption{Прогноз попарных расстояний при 2-ом способе подсчета $\Sigma$}
+  \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/real_corr_3.png}
+    \caption{Прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+\end{figure}
+
+Приведем график средней ошибки прогноза попарных расстояний для каждого из рядов в 1-ом и 2-ом способе посчета:
+
+\newpage
+
+\begin{figure}[h]
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/1_error_ts.png}
+    \caption{Cредняя MAE прогноза попарных расстояний для каждого из рядов при 1-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/2_error_ts.png}
+    \caption{Cредняя MAE прогноза попарных расстояний для каждого из рядов при 2-ом способе подсчета $\Sigma$}
+  \end{minipage}
+\end{figure}
+
+Большая ошибка на временных рядах 18, 19 связана с их  высокой дисперсией. Прогнозируя попарные расстояния без временных рядов под номерами $18, 19$, получаем улучшение прогноза:
+
+\begin{equation}
+    \text{MAE}_1 = 785.7, \text{MSE}_1 = 1904480
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_2 = 94.1, \text{MSE}_2 = 38195.5
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_3 = 0.11, \text{MSE}_3 = 0.03
+\end{equation}
 
 \bibliographystyle{unsrt}
 \bibliography{biblio}
