@@ -354,10 +354,133 @@ d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{
 
 Таким образом, приходим к выводу, что как таковой зависимости ошибки от количества прогнозируемых рядов нет.
 
-\bibliographystyle{unsrt}
-\bibliography{biblio}
+\subsection{Прогнозирование матрицы попарных расстояний}
 
-\end{document}
+Рассмотрим три способа вычисления матрицы попарных расстояний между временными рядами. Считаем, что в каждый момент времени набор временных рядов задается матрицей $\textbf{X} \in R^{n \times L}$:
+
+
+\begin{equation}
+\textbf{X} = \left( \begin{array}{cccc}
+x^{(1)}_{t - \text{L} + 1} & x^{(1)}_{t - \text{L} + 2} & \ldots & x^{(1)}_{t} \\
+x^{(2)}_{t - \text{L} + 1} & x^{(2)}_{t - \text{L} + 2} & \ldots & x^{(2)}_{t} \\
+\ldots & \ldots & \ldots & \ldots \\
+x^{(n)}_{t - \text{L} + 1} & x^{(n)}_{t - \text{L} + 2} & \ldots & x^{(n)}_{t}.
+\end{array}\right)
+\end{equation}
+
+
+$i$-й столбец матрицы $\textbf{X}$ обозначим через вектор $\textbf{y}^{i}$. А $i$-ю строку матрицы $\textbf{X}$ обозначим через вектор $\textbf{x}^{(i)}$.   В каждый момент времени поставим в соответствие данному набору матрицу $\Sigma_t \in R^{\text{n} \times \text{n}}$, элементы которой описывают взаимосвязь различных компонент набора временных рядов. Рассмотрим три способа построения данной матрицы.
+
+\subsubsection{Способ № 1}
+
+
+\begin{equation}
+\Sigma_t^{1} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} \textbf{y}^{i} \textbf{y}^{iT}
+\end{equation}
+
+\subsubsection{Способ № 2}
+
+
+Введем вектор $\mathbf{m} \in R^{\text{n}}$ следующим образом:
+
+
+\begin{equation}
+\mathbf{m}_j = \dfrac1L \sum\limits_{i = 1}^{L} \textbf{y}^{i}_j.
+\end{equation}
+
+
+А теперь матрицу $\Sigma_t^{2}$, при построении которой, в отличие от $\Sigma_t^{1}$, процентрируем векторы $\textbf{y}^{i}$ с помощью  $\textbf{m}$: 
+
+
+\begin{equation}
+\Sigma_t^{2} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} (\textbf{y}^{i} - \textbf{m}) (\textbf{y}^{i} - \textbf{m})^T
+\end{equation}
+
+\subsubsection{Способ № 3}
+
+Для каждой строки $\textbf{x}^{(j)}$, $j \in {1, \ldots, n}$ матрицы $\textbf{X}$ введем величину:
+
+
+\begin{equation}
+\sigma_j = \sqrt{\dfrac{1}{L} \sum\limits_{i = 1}^L (\textbf{x}^{(j)}_i - \textbf{m}_i)^2}.
+\end{equation}
+
+
+Теперь введем матрицу $\Sigma_t^3$ следующим образом:
+
+
+\begin{equation}
+(\Sigma_t^{3})_{ij} = \dfrac{(\Sigma_t^{2})_{ij}}{\sigma_i \sigma_j}.
+\end{equation}
+
+\subsubsection{Вычислительный эксперимент}
+
+Проведем эксперименты на одном синтетическом наборе временных рядов и двух реальных наборах временных рядов. 
+
+1. Синтетические данные
+
+Рассмотрим набор из $n = 4$ временных рядов представляющие собой все те же сдвинутые синусы. Длина каждого из рядов 200, а считать матрицу попарных расстояний будем по $L = 10$ значениям. Для начала, преобразуем исходные временные ряды в набор из попарных расстояний, состоящий из $\dfrac{n^2 - n}{2} = 6$ компонент. Приведем вид двух из полученных временных рядов для каждого способа подсчета матрицы попарных расстояний:
+
+\begin{figure}[h]
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_1_.png}
+    \caption{Временные ряды попарных расстояний при 1-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_2_.png}
+    \caption{Временные ряды попарных расстояний при 2-ом способе подсчета $\Sigma$}
+  \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_3_.png}
+    \caption{Временные ряды попарных расстояний при 3-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+\end{figure}
+
+Проведем прогноз с помощью LSTM во всех трех случаях, обучая модель на первых 150 значениях временного ряда и прогнозируя следующие 50. Приведем средние ошибки прогноза:
+
+\begin{equation}
+    \text{MAE}_1 = 0.55, \text{MSE}_1 = 0.5
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_2 = 0.17, \text{MSE}_2 = 0.04
+\end{equation}
+
+\begin{equation}
+    \text{MAE}_3 = 0.17, \text{MSE}_3 = 0.04
+\end{equation}
+
+Демонстрация прогноза для двух рядов из набора:
+
+\begin{figure}[h]
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_for_1.png}
+    \caption{Прогноз попарных расстояний при 1-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_for_2.png}
+    \caption{Прогноз попарных расстояний при 2-ом способе подсчета $\Sigma$}
+  \end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_for_3.png}
+    \caption{Прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
+  \end{minipage}\hfill
+\end{figure}
+
 \bibliographystyle{unsrt}
 \bibliography{biblio}
 
