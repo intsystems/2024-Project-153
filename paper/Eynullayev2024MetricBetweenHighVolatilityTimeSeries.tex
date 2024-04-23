@@ -13,6 +13,7 @@
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
+\usepackage{comment}
 
 
 
@@ -81,7 +82,7 @@ pdfkeywords={First keyword, Second keyword, More},
 
 В качестве простейшей метрики рассматривается ковариация между временными рядами. \cite{Boyd} Таким образом, для набора временных рядов получаем матрицу ковариации. Стоит заметить, что матрица ковариации (матрица попарных расстояний) вычисляется в каждый момент времени. Альтернативные варианты метрики выбираются из класса ядер \cite{shawe2004kernel}.
 
-Численные эксперименты проводятся на трех видах данных: синтетические, сигналы коры головного мозга, финансовые временные ряды. Эксперимент состоит из выполнения прогноза временного ряда при помощи прогнозирования матрицы попарных расстояний. В качестве прогностической модели выбирается линейная регрессия с использованием SSA (англ. Singular Spectrum Analysis) \cite{vautard1992singular}. По результатам экспериментов проводится анализ точности прогноза и его устойчивости в зависимости от выбранной метрики и вида данных. Цель эксперимента состоит в оптимальном выборе функции попарных расстояний для выполнения прогноза.
+Численные эксперименты проводятся на трех видах данных: синтетические, сигналы коры головного мозга, финансовые временные ряды. Эксперимент состоит из выполнения прогноза временного ряда при помощи прогнозирования матрицы попарных расстояний. В качестве прогностической модели рассматривается ARIMA и LSTM. По результатам экспериментов проводится анализ точности прогноза и его устойчивости в зависимости от выбранной метрики и вида данных. Цель эксперимента состоит в оптимальном выборе функции попарных расстояний для выполнения прогноза.
 
 \section{Problem statement}
 
@@ -124,7 +125,7 @@ d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(1)}) & d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(2)}
 
 Дадим описание двум используемым прогностическим моделям.
 
-\subsection{Авторегрессия}
+\subsection{ARIMA}
 
 Пусть имеем реализацию матрицы попарных расстояний из \text{m} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{m}]$. Пусть $\Sigma_{\text{m} + 1}$ - прогнозируемая матрица. Авторегрессионная модель:
 
@@ -138,7 +139,10 @@ d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(1)}) & d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(2)}
     \hat{\mathbf{a}} = \arg\min\limits_{\mathbf{a} \in R^{m \times m}}\|\Sigma_{\text{m} + 1} - \hat{\Sigma}_{\text{m} + 1}\|_F^2.
 \end{equation}
 
-\subsection{Многомерная гусеница (MSSA)}
+\subsection{LSTM}
+
+\begin{comment}
+    \subsection{Многомерная гусеница (MSSA)}
 
 Пусть имеем реализацию матрицы попарных расстояний из \text{m} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{m}]$. Определим \textbf{L} - ширина окна, \text{K} $ = \textbf{m} - \text{L} + 1$. В силу того, что матрица симметричная, то для каждой компоненты матрицы попарных расстояний, где $i \leqslant j$, построим матрицу траекторий (матрица Ганкеля):
 
@@ -196,6 +200,8 @@ d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{
 \end{equation}
 
 где $\widetilde{d}_{\text{m} + 1}(i, j) = \widetilde{d}_{\text{m} + 1}(j, i)$, при $i > j$.
+\end{comment}
+
 
 \subsection{Задача прогнозирования набора временных рядов}
 
@@ -227,132 +233,7 @@ d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{
 
 \section{Computational experiment}
 
-Целью эксперимента является сравнение качества прогнозирования предложенного метода с классическими методами. В качестве базовых данных рассматриваются синтетические данные двух типов: зашумленный синус заданной амплитуды и зашумленная сумма двух синусов заданной амплитуды с различными периодами. Проведем сравнение методов $\text{MSSA}$ и $\text{AR}$ на синтетических данных, не используя для прогнозирования матрицу попарных расстояний. Для этого, разобьем временной ряд на обучающую и тестовую выборку, спрогнозируем тестовую часть и сравним точность прогноза с помощью $\text{MAPE}$ (15) и $\text{MSE}$ (16).
-
-\subsection{MSSA}
-
-Рассматривается набор временных рядов размера 2, состоящий из двух типов синтетических данных, описанных выше. Каждый временной ряд состоит из $n = 1000$ сигналов, разбиение на обучающую и тестовую выборку осуществляется в пропорции $7:3$. Приведем результаты прогнозирования с помощью MSSA и значения критериев качества прогноза каждого ряда на отдельных графиках:
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/MSSA_1.png} }
-\caption{Прогнозирование зашумленного синуса с помощью MSSA с указанием критериев качества прогноза}
-\label{fig:MSSAsine}
-\end{figure}
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/MSSA_2.png} }
-\caption{Прогнозирование зашумленная сумма двух синусов с различными периодами с помощью MSSA с указанием критериев качества прогноза}
-\label{fig:MSSA2sines}
-\end{figure}
-
-\newpage
-
-\subsection{AR}
-
-В этом случае каждый из временных рядов прогнозировался независимо. Качество прогноза зависит от выбора параметра $p$ --- количество предыдущих значений временного ряда, учавствующих в авторегрессии. В нашем эксперименте $p = 30$. В обоих случаях, при разбиении выборки в пропорциях, использованных в $MSSA$, получали плохое качество прогноза. Поэтому, в обоих случаях, разбиение на обучающую и тестовую выборку осуществляется в пропорции $8:2$. Тем не менее, качество прогноза все равно значительно уступает MSSA, особенно во втором случае.
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/AR_1.png} }
-\caption{Прогнозирование зашумленного синуса с помощью AR с указанием критериев качества прогноза}
-\label{fig:ARsine}
-\end{figure}
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/AR_2.png} }
-\caption{Прогнозирование зашумленная сумма двух синусов с различными периодами с помощью AR с указанием критериев качества прогноза}
-\label{fig:AR2sines}
-\end{figure}
-
-\subsection{LSTM}
-
-В этом случае прогнозировались синтетические и реальные наборы временных рядов с высокой попарной корреляцией. Количество временных рядов в наборе в обоих случаях равно $n = 24$. В качестве синтетических данных снова выступают смещенные относительно друг друга, зашумленные синусы различных амплитуд. В качестве реального датасета --- цены на электричество.
-
-\subsubsection{Синтетические данные}
-
-Приведем матрицу корреляции синтетического набора временных рядов, чтобы убедиться в том, что сделанное выше предположение выполняется:
-
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/htmap_sine.png} }
-\caption{Матрица корреляции синтетического набора временных рядов}
-\label{fig:Heatsine}
-\end{figure}
-
-\newpage
-
- Изобразим на графике результат прогноза двух временных рядов из набора:
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/LSTM_sine.png} }
-\caption{Прогнозирование набора зашумленных синусов с помощью LSTM}
-\label{fig:LSTMsine}
-\end{figure}
-
-Приведем средние ошибки MAPE и MSE прогноза:
-
-\begin{equation}
-    \text{MAPE} \approx 0.94
-\end{equation}
-
-\begin{equation}
-    \text{MSE} \approx 1.36
-\end{equation}
-
-\subsubsection{Реальные данные}
-
-Снова приведем матрицу корреляции набора цен на электричество, чтобы убедиться в том, что сделанное выше предположение о высокой попарной корреляции выполняется:
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=10cm]{images/htmap_price.png} }
-\caption{Матрица корреляции набора цен на электричество}
-\label{fig:Heatprice}
-\end{figure}
-
- Изобразим на графике результат прогноза двух временных рядов из набора:
-
-\begin{figure}[h]
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/price_1st.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/price_2nd.png}
-  \end{minipage}
-  \caption{Результат прогнозирования на примере двух временных рядов из набора}
-\end{figure}
-
-Приведем средние ошибки MAE и MSE прогноза:
-
-\begin{equation}
-    \text{MAE} \approx 28.3
-\end{equation}
-
-\begin{equation}
-    \text{MSE} \approx 1616.6
-\end{equation}
-
-Высокая ошибка MSE связана с тем, что в данных, как можно заметить на Pис. 8, имеются очень большие скачки цен. Таким образом, ошибка MAE более информативна.
-
-\subsubsection{Выбор оптимального количества прогнозируемых рядов}
-
-Определим оптимальное количество прогнозируемых рядов в наборе. Будем прогнозировать $[x^{(1)}, \ldots, x^{(n)}]$ последовательно для $n = 1, \ldots, 24$ и вычислять среднюю ошибку MAE прогноза. Для исключения зависимости от порядка прогнозируемых рядов, проведем 10 экспериментов, перемешивая ряды случайным образом, и усредним полученные результаты. Приведем график зависимости ошибки MAE от количества прогнозируемых рядов:
-
-\begin{figure}[!htbp]
-\centering
-{\includegraphics[width=8cm]{images/tsNumVsMae.png} }
-\caption{Зависимость MAE от количества прогнозируемых рядов}
-\label{fig:NumMae}
-\end{figure}
-
-Таким образом, приходим к выводу, что как таковой зависимости ошибки от количества прогнозируемых рядов нет.
+Целью эксперимента является сравнение различных способов вычисления матрицы попарных расстояний, путем анализа ошибки прогноза. В качестве прогностических модели рассмотрим LSTM, ARIMA. Проведем эксперименты как на синтетических наборах временных рядов, так и на реальных. Точность прогноза будем оценивать с помощью MAPE (15) и MSE (16). 
 
 \subsection{Прогнозирование матрицы попарных расстояний}
 
@@ -413,14 +294,17 @@ $i$-й столбец матрицы $\textbf{X}$ обозначим через 
 (\Sigma_t^{3})_{ij} = \dfrac{(\Sigma_t^{2})_{ij}}{\sigma_i \sigma_j}.
 \end{equation}
 
-\subsubsection{Вычислительный эксперимент}
+\subsection{Вычислительный эксперимент}
 
 Проведем эксперименты на одном синтетическом наборе временных рядов и двух реальных наборах временных рядов. 
 
 1. Синтетические данные
 
-Рассмотрим набор из $n = 4$ временных рядов представляющие собой все те же сдвинутые синусы. Длина каждого из рядов 200, а считать матрицу попарных расстояний будем по $L = 10$ значениям. Для начала, преобразуем исходные временные ряды в набор из попарных расстояний, состоящий из $\dfrac{n^2 - n}{2} = 6$ компонент. Приведем вид двух из полученных временных рядов для каждого способа подсчета матрицы попарных расстояний:
+Рассмотрим набор из $n = 4$ временных рядов представляющие собой все те же сдвинутые синусы. Длина каждого из рядов 200, а считать матрицу попарных расстояний будем по $L = 10$ значениям. Для начала, преобразуем исходные временные ряды в набор из попарных расстояний, состоящий из $\frac{n^2 + n}{2} = 10$ компонент. Проведем прогноз с помощью LSTM и ARIMA во всех трех случаях, обучая модель на первых 150 значениях временного ряда и прогнозируя следующие 50. Приведем средние ошибки прогноза:
 
+%\newpage
+
+\begin{comment}
 \begin{figure}[h]
   \begin{minipage}{0.5\textwidth}
     \centering
@@ -442,92 +326,128 @@ $i$-й столбец матрицы $\textbf{X}$ обозначим через 
     \caption{Временные ряды попарных расстояний при 3-ом способе подсчета $\Sigma$}
   \end{minipage}\hfill
 \end{figure}
+\end{comment}
 
-Проведем прогноз с помощью LSTM во всех трех случаях, обучая модель на первых 150 значениях временного ряда и прогнозируя следующие 50. Приведем средние ошибки прогноза:
 
-\begin{equation}
-    \text{MAE}_1 = 0.55, \text{MSE}_1 = 0.5
-\end{equation}
 
-\begin{equation}
-    \text{MAE}_2 = 0.17, \text{MSE}_2 = 0.04
-\end{equation}
-
-\begin{equation}
-    \text{MAE}_3 = 0.17, \text{MSE}_3 = 0.04
-\end{equation}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline  
+         & $\text{MAE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAE}_{\text{ARIMA}}$\\ \hline
+${\Sigma}^1$ & 0.55 & 0.5 & 1.45 \\ \hline
+${\Sigma}^2$ & 0.17 & 0.04 & 0.57 \\ \hline
+${\Sigma}^3$ & 0.17 & 0.04 & 0.37 \\ \hline
+\end{tabular}
+\caption{Ошибки прогноза на синтетическом наборе при различных способах вычисления $\Sigma_t$.}
+\label{tab:stat}
+\end{table}
 
 Демонстрация прогноза для двух рядов из набора:
 
 \newpage
 
 \begin{figure}[h]
-  \begin{minipage}{0.5\textwidth}
+  \begin{minipage}{0.33\textwidth}
     \centering
     \includegraphics[width=\linewidth]{images/4_sine_corr_for_1.png}
-    \caption{Прогноз попарных расстояний при 1-ом способе подсчета $\Sigma$}
   \end{minipage}\hfill
-  \begin{minipage}{0.5\textwidth}
+  \begin{minipage}{0.33\textwidth}
     \centering
     \includegraphics[width=\linewidth]{images/4_sine_corr_for_2.png}
-    \caption{Прогноз попарных расстояний при 2-ом способе подсчета $\Sigma$}
   \end{minipage}
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/4_sine_corr_for_3.png}
+  \end{minipage}
+  \caption{LSTM прогноз попарных расстояний при соответственно 1, 2, 3-ем способе подсчета $\Sigma$.}
 \end{figure}
 
 \begin{figure}[h]
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/arima_sine_1.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/arima_sine_2.png}
+  \end{minipage}
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/arima_sine_3.png}
+  \end{minipage}\hfill
+      \caption{ARIMA прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$}
+\end{figure}
+
+\begin{comment}
+    \begin{figure}[h]
   \centering
   \begin{minipage}{0.5\textwidth}
     \centering
     \includegraphics[width=\linewidth]{images/4_sine_corr_for_3.png}
-    \caption{Прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
+    \caption{LSTM прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
   \end{minipage}\hfill
 \end{figure}
+\end{comment}
+
 
 2. Реальные данные 
 
-Рассмотрим уже прогнозируемый реальный набор из $n = 24$ высоко коррелированных временных рядов. Матрицу попарных расстояний будем считать по $L = 10$ предыдущим значениям. Преобразованный набор попарных расстояний состоит из $\dfrac{24^2 - 24}{2} = 276$ временных рядов. Проведем прогноз с помощью LSTM, поделив ряд на обучающую и тестовую выборку в отношении $7 : 3$. Получаем следующие средние ошибки прогнозов:
+Рассмотрим уже прогнозируемый реальный набор из $n = 24$ высоко коррелированных временных рядов. Матрицу попарных расстояний будем считать по $L = 10$ предыдущим значениям. Преобразованный набор попарных расстояний состоит из $\dfrac{24^2 - 24}{2} = 276$ временных рядов. Проведем прогноз с помощью LSTM, ARIMA поделив ряд на обучающую и тестовую выборку в отношении $7 : 3$. Получаем следующие средние ошибки прогнозов:
 
-\begin{equation}
-    \text{MAE}_1 = 895.2, \text{MSE}_1 = 3265375.3
-\end{equation}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline  
+         & $\text{MAE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAE}_{\text{ARIMA}}$\\ \hline
+${\Sigma}^1$ & 895.2 & 3265375.3 & 3874.4 \\ \hline
+${\Sigma}^2$ & 152.8 & 215891.3 & 135.1 \\ \hline
+${\Sigma}^3$ & 0.11 & 0.03 & 0.27 \\ \hline
+\end{tabular}
+\caption{Ошибки прогноза на реальном наборе при различных способах вычисления $\Sigma_t$.}
+\label{tab:stat}
+\end{table}
 
-\begin{equation}
-    \text{MAE}_2 = 152.8, \text{MSE}_2 = 215891.3
-\end{equation}
 
-\begin{equation}
-    \text{MAE}_3 = 0.11, \text{MSE}_3 = 0.03
-\end{equation}
 
 Большие ошибки MSE в первых двух случаях связаны с наличием больших скачков в исходных данных. В силу высокой корреляции исходных рядов, ряды попарных расстояний очень схожи:
 
 \newpage
 
 \begin{figure}[h]
-  \begin{minipage}{0.5\textwidth}
+  \begin{minipage}{0.33\textwidth}
     \centering
     \includegraphics[width=\linewidth]{images/real_corr_1.png}
-    \caption{Прогноз попарных расстояний при 1-ом способе подсчета $\Sigma$}
   \end{minipage}\hfill
-  \begin{minipage}{0.5\textwidth}
+  \begin{minipage}{0.33\textwidth}
     \centering
     \includegraphics[width=\linewidth]{images/real_corr_2.png}
-    \caption{Прогноз попарных расстояний при 2-ом способе подсчета $\Sigma$}
-  \end{minipage}
+  \end{minipage}\hfill
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/real_corr_3.png}
+  \end{minipage}\hfill
+      \caption{LSTM прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$.}
 \end{figure}
 
 \begin{figure}[h]
-  \centering
-  \begin{minipage}{0.5\textwidth}
+  \begin{minipage}{0.33\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{images/real_corr_3.png}
-    \caption{Прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
+    \includegraphics[width=\linewidth]{images/arima_real_1.png}
   \end{minipage}\hfill
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/arima_real_2.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.33\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/arima_real_3.png}
+  \end{minipage}\hfill
+      \caption{ARIMA прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$.}
 \end{figure}
 
-Приведем график средней ошибки прогноза попарных расстояний для каждого из рядов в 1-ом и 2-ом способе посчета:
-
-\newpage
+\begin{comment}
+    Приведем график средней ошибки прогноза попарных расстояний для каждого из рядов в 1-ом и 2-ом способе посчета:
 
 \begin{figure}[h]
   \begin{minipage}{0.5\textwidth}
@@ -544,18 +464,27 @@ $i$-й столбец матрицы $\textbf{X}$ обозначим через 
 
 Большая ошибка на временных рядах 18, 19 связана с их  высокой дисперсией. Прогнозируя попарные расстояния без временных рядов под номерами $18, 19$, получаем улучшение прогноза:
 
-\begin{equation}
-    \text{MAE}_1 = 785.7, \text{MSE}_1 = 1904480
-\end{equation}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+         & MAE  & MSE  \\ \hline
+${\Sigma}^1$ & 785.7 & 1904480  \\ \hline
+${\Sigma}^2$ & 94.1 & 38195.5 \\ \hline
+${\Sigma}^3$ & 0.11 & 0.03 \\ \hline
+\end{tabular}
+\caption{Ошибки LSTM прогноза на реальном наборе при отказе от прогнозирования попарных расстояний рядов 18, 19.}
+\label{tab:stat2}
+\end{table}
+\end{comment}
 
-\begin{equation}
-    \text{MAE}_2 = 94.1, \text{MSE}_2 = 38195.5
-\end{equation}
+\subsection{Восстановление прогноза}
 
-\begin{equation}
-    \text{MAE}_3 = 0.11, \text{MSE}_3 = 0.03
-\end{equation}
 
+\bibliographystyle{unsrt}
+\bibliography{biblio}
+
+\end{document}
 \bibliographystyle{unsrt}
 \bibliography{biblio}
 
