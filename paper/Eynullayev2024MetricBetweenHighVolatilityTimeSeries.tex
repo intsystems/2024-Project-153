@@ -1,19 +1,25 @@
 \documentclass{article}
 \usepackage{arxiv}
-
-\usepackage[T2A]{fontenc}			
-\usepackage[utf8]{inputenc}			
-\usepackage[english,russian]{babel}	
-\usepackage{amsmath,amsfonts,amssymb,amsthm,mathrsfs,mathtools} 
+\usepackage{wrapfig}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[english, russian]{babel}
+\usepackage[T1]{fontenc}
 \usepackage{url}
 \usepackage{booktabs}
+\usepackage{float}
+\usepackage{amsfonts}
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{lipsum}
+\usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{natbib}
 \usepackage{doi}
+
+\pagestyle{fancy}
 \usepackage{comment}
+
 
 
 
@@ -65,142 +71,136 @@ pdfkeywords={First keyword, Second keyword, More},
 \maketitle
 
 \begin{abstract}
-	Рассматривается задача прогнозирования финансовых временных рядов. Основными особенностями таких временных рядов являются высокая волатильность и высокая попарная ковариация. Классическим подходом к решению задачи является выполнение прогноза в исходном пространстве. Новый метод заключается в переходе в пространство попарных расстояний между временными рядами, осуществлении прогноза в нем и переходе обратно в исходное пространство. Для его реализации необходимо ввести функцию расстояния между временными рядами, которая должна удовлетворять определенным свойствам. В данной статье изучаются  эти свойства и проводятся сравнения различных метрик на основе численных экспериментов.
+	Решается задача прогнозирования финансовых временных рядов. Основными особенностями таких временных рядов являются высокая волатильность и высокая попарная ковариация. Базовым подходом к решению задачи является выполнение прогноза в исходном пространстве. Предлагаемый метод COF (correlation optimization forecasting) заключается в переходе в пространство попарных расстояний между временными рядами, прогнозировании в нем и переходе обратно в исходное пространство. Для его реализации вводится функцию расстояния между временными рядами, которая должна удовлетворять определенным свойствам. В данной статье изучаются  эти свойства и проводятся сравнения различных функций попарного расстояния на основе численных экспериментов.
 
 \end{abstract}
 
 
-\keywords{Временные ряды \and Метрика \and Ковариация}
+\keywords{Набор временных рядов \and LSTM \and COF \and Корреляция \and ARIMA \and Матрица попарных расстояний}
 
 \section{Introduction}
 
-В текущей статье исследуется задача погружения временных рядов в метрическое пространство. Набору временных рядов ставится в соответствие матрица попарных расстояний и появляется возможность перейти от прогнозирования набора временных рядов к прогнозированию матрицы попарных расстояний. При этом выбор функции расстояния осуществляется так, чтобы по полученной матрице расстояний можно было восстановить прогноз для набора временных рядов.
+Решается задача прогнозирования набора временных рядов, используя функцию попарного расстояния. Прогнозируемые временные ряды обладают следующими свойствами: высокая попарная корреляция и высокая дисперсия. Набору временных рядов ставится в соответствие и прогнозируется матрица попарных расстояний. При этом функция расстояния выбирается так, чтобы по полученной матрице расстояний можно было восстановить прогноз для набора временных рядов.
 
-В статистике, обработке сигналов и многих других областях под временным рядом понимаются последовательно измеренные через некоторые (зачастую равные) промежутки времени данные. \cite{shumway2000time} Прогнозирование временных рядов заключается в построении модели для предсказания будущих событий основываясь на известных событиях прошлого, предсказания будущих данных до того как они будут измерены.
+Временной ряд --- последовательно измеренные через равные промежутки времени данные. \cite{shumway2000time} Прогнозирование временных рядов заключается в построении модели для предсказания будущих событий основываясь на известных событиях прошлого, предсказания будущих данных до того как они будут измерены. В \cite{ES} для прогнозирования использовался алгоритм экспоненциального сглаживания (англ. Exponential Smoothing). В \cite{LSTM} --- LSTM (англ. Long Short-Term Memory), в \cite{ARIMA} --- ARIMA  (англ. autoregressive integrated moving average). В работах \cite{cirstea2018correlated}, \cite{corberan2011forecasting} набор коррелированных временных рядов прогнозируется с помощью глубоких нейронных сетей и метода экспоненциального сглаживания, соответственно.
 
-Одними из хорошо известных, классических методов прогнозирования временных рядов являются экспоненциальное сглаживание (англ. Exponential Smoothing) \cite{ES}, LSTM (англ. Long Short-Term Memory) \cite{LSTM}, ARIMA  (англ. autoregressive integrated moving average) \cite{ARIMA}. Главным отличием исследуемого метода от вышеперечисленных является то, что временные ряды прогнозируются при помощи прогнозирования матрицы попарных расстояний.
+Предлагается использовать свойство высокой коррелированности набора временных рядов при прогнозировании. Вместо непосредственного прогнозирования временных рядов, прогнозируется матрица попарных расстояний. Прогноз набора временных рядов восстанавливается по матрице путем решения задачи оптимизации. В качестве функции попарных расстояний рассматривается ковариация между временными рядами \cite{Boyd}. Для набора временных рядов задана матрица ковариации, вычисляемая в каждый момент времени.
 
-В качестве простейшей метрики рассматривается ковариация между временными рядами. \cite{Boyd} Таким образом, для набора временных рядов получаем матрицу ковариации. Стоит заметить, что матрица ковариации (матрица попарных расстояний) вычисляется в каждый момент времени. Альтернативные варианты метрики выбираются из класса ядер \cite{shawe2004kernel}.
+Численные эксперименты проводятся на наборе финансовых временных рядов. Эксперимент состоит в прогнозировании матрицы попарных расстояний, оценке качества прогноза, восстановлении прогноза в исходное пространство и оценке его точности. В качестве прогностической модели рассматривается ARIMA и LSTM. По результатам экспериментов проводится анализ точности прогноза в зависимости от выбранной функции попарных расстояний и вида данных. Цель эксперимента состоит в оптимальном выборе функции попарных расстояний для выполнения прогноза и сравнение работы метода с ARIMA и LSTM.
 
-Численные эксперименты проводятся на трех видах данных: синтетические, сигналы коры головного мозга, финансовые временные ряды. Эксперимент состоит из выполнения прогноза временного ряда при помощи прогнозирования матрицы попарных расстояний. В качестве прогностической модели рассматривается ARIMA и LSTM. По результатам экспериментов проводится анализ точности прогноза и его устойчивости в зависимости от выбранной метрики и вида данных. Цель эксперимента состоит в оптимальном выборе функции попарных расстояний для выполнения прогноза.
+\section{Постановка задачи}
 
-\section{Problem statement}
-
-Пусть \text{X} $ = \{\mathbf{x} = [x_1, \ldots, x_\text{m}]^T | x_i \in R\}$ --- множество временных рядов, заданных своей реализацией. Обозначим через  $\mathbf{Y} \in R^{n \times m}$ заданный набор из $n$ временных рядов:
+Обозначим через  $\mathbf{X} \in R^{n \times m}$ заданный набор из $n$ временных рядов:
 
 \begin{equation}
-    \mathbf{Y} = [\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(n)}]^T.
+    \mathbf{X} = [\mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(n)}]^\text{T}.
 \end{equation}
 
- Через $\mathbf{Y}_t \in R^{n \times t}$ обозначим $t < m$ первых столбцов $\mathbf{Y}$: 
+ Через $\mathbf{X}_t \in R^{n \times t}$ обозначим $t < m$ первых столбцов $\mathbf{Y}$: 
  
  \begin{equation}
-    \mathbf{Y}_t = [\mathbf{x}_{1:t}^{(1)}, \ldots, \mathbf{x}_{1:t}^{(n)}]^T.
+    \mathbf{X}_t = [\mathbf{x}_{1:t}^{(1)}, \ldots, \mathbf{x}_{1:t}^{(n)}]^\text{T}.
 \end{equation}. 
 
-Определим функцию расстояния между временными рядами: $d : \text{X} \times \text{X} \rightarrow R$, удовлетворяющую условиям Мерсера \cite{ghojogh2021reproducing}:
+Определим функцию расстояния между временными рядами
+удовлетворяющую условиям Мерсера \cite{ghojogh2021reproducing}:
 
-1. $d(\mathbf{x}^{(1)}, \mathbf{x}^{(2)}) = d(\mathbf{x}^{(2)}, \mathbf{x}^{(1)})$ $\forall \mathbf{x}^{(1)}, \mathbf{x}^{(2)} \in \text{X}$.
+ \[d(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) = d(\mathbf{x}^{(j)}, \mathbf{x}^{(i)}),\]
 
-2. $\forall n \in N$, $\forall \mathbf{x}^{(1)}, \ldots, \mathbf{x}^{(n)} \in X$ матрица $\Sigma \in S_n$, составленная из попарных расстояний между элементами, является неотрицательно определенной.
+ \[\Sigma \in S_n : \Sigma_{ij} = d(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) \text{--- неотрицательно определена.}\]
+ 
 
 Обозначим расстояние между временными рядами $\mathbf{x}^{(i)} = [x_1^{(i)}, \ldots, x_t^{(i)}], \mathbf{x}^{(j)} = [x^{(j)}_1, \ldots, x^{(j)}_t]$ следующим образом:
 
 \begin{equation}
-    d_t(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) = d_t(i, j)
+    d_t(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) = d_t(i, j).
 \end{equation}
 
-Таким образом, в каждый момент времени $t$ набору временных рядов $\mathbf{Y}_t$ поставлена в соответствие матрица попарных расстояний $\Sigma_t \in \mathcal{S}_n^+$ (симметричная, неотрицательно определенная матрица):
+Таким образом, в каждый момент времени $t$ набору временных рядов $\mathbf{X}_t$ поставлена в соответствие матрица попарных расстояний $\Sigma_t \in \mathcal{S}_n^+$ (симметричная, неотрицательно определенная матрица):
 
 \begin{equation}
-    \mathbf{Y}_t \Rightarrow \Sigma_t = \left(
+    \mathbf{X}_t \Rightarrow \Sigma_t = \left(
 \begin{array}{cccc}
 d_t(\mathbf{x}^{(1)}, \mathbf{x}^{(1)}) & d_t(\mathbf{x}^{(1)}, \mathbf{x}^{(2)}) & \ldots & d_t(\mathbf{x}^{(1)}, \mathbf{x}^{(n)})\\
 d_t(\mathbf{x}^{(2)}, \mathbf{x}^{(1)}) & d_t(\mathbf{x}^{(2)}, \mathbf{x}^{(2)}) & \ldots & d_t(\mathbf{x}^{(2)}, \mathbf{x}^{(n)})\\
 \vdots & \vdots & \ddots & \vdots\\
 d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(1)}) & d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(2)}) & \ldots & d_t(\mathbf{x}^{(n)}, \mathbf{x}^{(n)})\\
 \end{array}
-\right)
-\end{equation}
-
-Дадим описание двум используемым прогностическим моделям.
-
-\subsection{ARIMA}
-
-Пусть имеем реализацию матрицы попарных расстояний из \text{m} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{m}]$. Пусть $\Sigma_{\text{m} + 1}$ - прогнозируемая матрица. Авторегрессионная модель:
-
-\begin{equation}
-    \hat{\Sigma}_{\text{m} + 1} = \sum\limits_{i = 1}^m a_i\Sigma_{i} + \epsilon_{\text{m} + 1}
-\end{equation}
-
-где $a_1, \ldots, a_\text{m} \in R$ --- параметры модели (коэффициенты авторегрессии), $\epsilon_{\text{m} + 1} \in R^{\text{m} \times \text{m}}$ --- белый шум. Обозначим через $mathbf{a} \in R^{\text{m}}$ вектор составленный из параметров модели. Вектор оптимальных параметров модели $\hat{\mathbf{a}} \in R^{\text{m}}$ определяется с помощью решения задачи оптимизации:
-
-\begin{equation}
-    \hat{\mathbf{a}} = \arg\min\limits_{\mathbf{a} \in R^{m \times m}}\|\Sigma_{\text{m} + 1} - \hat{\Sigma}_{\text{m} + 1}\|_F^2.
-\end{equation}
-
-\subsection{LSTM}
-
-\begin{comment}
-    \subsection{Многомерная гусеница (MSSA)}
-
-Пусть имеем реализацию матрицы попарных расстояний из \text{m} компонент: $\Sigma = [\Sigma_1, \Sigma_2, \ldots, \Sigma_\text{m}]$. Определим \textbf{L} - ширина окна, \text{K} $ = \textbf{m} - \text{L} + 1$. В силу того, что матрица симметричная, то для каждой компоненты матрицы попарных расстояний, где $i \leqslant j$, построим матрицу траекторий (матрица Ганкеля):
-
-\begin{equation}
-    \mathbf{H}_{ij} = \left(
-\begin{array}{cccc}
-d_1(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_2(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & \ldots & d_{\text{K}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})\\
-d_2(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_3(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & \ldots & d_{\text{K} + 1}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})\\
-\vdots & \vdots & \ddots & \vdots\\
-d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & \ldots & d_\text{m}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)})\\
-\end{array}
 \right).
 \end{equation}
 
-Строим блочную матрицу траекторий:
+\subsection{Выбор функции попарных расстояний}
+
+Считаем, что в каждый момент времени временной ряд задается своими прошлыми L значениями. Следовательно, набор временных рядов задается матрицей $\mathbf{X}_t \in R^{\text{n} \times \text{L}}$:
+
 
 \begin{equation}
-    \mathbf{H} = [\mathbf{H}_{11} : \mathbf{H}_{12} : \mathbf{H}_{13} : \mathbf{H}_{1n} : \mathbf{H}_{22} : \ldots : \mathbf{H}_{nn}]
+\mathbf{X}_t = \left( \begin{array}{cccc}
+x^{(1)}_{t - \text{L} + 1} & x^{(1)}_{t - \text{L} + 2} & \ldots & x^{(1)}_{t} \\
+x^{(2)}_{t - \text{L} + 1} & x^{(2)}_{t - \text{L} + 2} & \ldots & x^{(2)}_{t} \\
+\ldots & \ldots & \ldots & \ldots \\
+x^{(n)}_{t - \text{L} + 1} & x^{(n)}_{t - \text{L} + 2} & \ldots & x^{(n)}_{t}.
+\end{array}\right)
 \end{equation}
 
-Сингулярное разложение симметричной, положительно полуопределенной матрицы $\mathbf{H}\mathbf{H}^T = \mathbf{U}\Lambda\mathbf{U}^T$, где $\Lambda$ - диагональная матрица $\text{L} \times \text{L}$ собственных значений $\lambda_1 \geq \ldots \geq \lambda_{\text{L}}$, $\mathbf{U} = [\mathbf{u}_1, \ldots, \mathbf{u}_{\text{L}}]$ - ортогональная матрица собственных векторов матрицы $\mathbf{H}\mathbf{H}^T$. Пусть $d = \max\{i|\lambda_i > 0, i \in \{1, \ldots, \text{L}\}\}$. Тогда исходную матрицу траекторий можно представить в виде:
+
+$i$-й столбец матрицы $\mathbf{X}_t$ обозначим через вектор $\mathbf{y}^{i}$. А $i$-ю строку матрицы $\mathbf{X}_t$ обозначим через вектор $\mathbf{x}^{(i)}$. Рассмотрим три способа вычисления матрицы $\Sigma_t$.
+
+Тензорное произведение:
+
 
 \begin{equation}
-    \mathbf{H} = \sum\limits_{i = 1}^d\sqrt{\lambda_i}\mathbf{u}_i\mathbf{v}_i^T = \mathbf{H}^{(1)} + \ldots + \mathbf{H}^{(d)} = \sum\limits_{i = 1}^r \mathbf{H}^{(i)} + \sum\limits_{i = r + 1}^d \mathbf{H}^{(i)},
+\Sigma_t^{1} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} \mathbf{y}^{i} \mathbf{y}^{iT}
 \end{equation}
 
- где $\mathbf{v}_i = \mathbf{H}^T\mathbf{u}_i/\sqrt{\lambda_i}$ $\mathbf{H}_r = \sum\limits_{i = 1}^{r} \mathbf{H}^{(i)}$ --- сигнальные компоненты, а $\mathbf{H} - \mathbf{H}_r$ --- 
-шумовые. Полученную матрицу можно представить в виде:
+Центрированное тензорное произведение:
+
+Введем вектор $\mathbf{m} \in R^{\text{n}}$ следующим образом:
+
 
 \begin{equation}
-    \mathbf{H}_r = [ \widetilde{\mathbf{H}}_{11} : \widetilde{\mathbf{H}}_{12} : \ldots : \widetilde{\mathbf{H}}_{nn}]
+\mathbf{m}_j = \dfrac1L \sum\limits_{i = 1}^{L} \mathbf{y}^{i}_j.
 \end{equation}
 
-где каждая из матриц $\widetilde{\mathbf{H}}_{ij} \in R^{\text{m} - \text{L} + 1 \times \text{L}}$. Восстановим исходные расстояния с помощью антидиагонального усреднения элементов соответствующих матриц:
+
+А теперь матрицу $\Sigma_t^{2}$, при построении которой, в отличие от $\Sigma_t^{1}$, процентрируем векторы $\mathbf{y}^{i}$ с помощью  $\mathbf{m}$: 
+
 
 \begin{equation}
-    \widetilde{d}_t(i, j) = \dfrac{1}{2t - 1} \sum\limits_{k, l: k + l - 1 = t} \widetilde{h}^{(ij)}_{kl}, t \in \{1, \ldots, m\}
+\Sigma_t^{2} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} (\mathbf{y}^{i} - \mathbf{m}) (\mathbf{y}^{i} - \mathbf{m})^T
 \end{equation}
 
-где $\widetilde{h}^{(ij)}_{kl}$ --- элемент на пересечении $k$-ой строки и $l$-го столбца матрицы $\mathbf{H}_{ij}$. Обозначим через $\mathbf{u}^{\triangledown}_j \in R^{\text{L} - 1}$ первые $\text{L - 1}$ компоненты собственного вектора $\mathbf{u}_j$, а $\pi_j \in R$ --- последнюю компоненту вектора $\mathbf{u}_j$, ($j = 1, \ldots, r$). Определим $v^2 = \sum\limits_{j = 1}^r \pi_{j}^2$ и $\mathbf{p} \in R^{\text{L} - 1}$:
+Корреляция Пирсона:
+
+Для каждой строки $\mathbf{x}^{(j)}$, $j \in {1, \ldots, n}$ матрицы $\mathbf{X}_t$ введем величину:
+
 
 \begin{equation}
-    \mathbf{p} = \dfrac{1}{1 - v^2} \sum\limits_{j = 1}^r\pi_j\mathbf{u}_j^{\triangledown}.
+\sigma_j = \sqrt{\dfrac{1}{L} \sum\limits_{i = 1}^L (\mathbf{x}^{(j)}_i - \mathbf{m}_i)^2}.
 \end{equation}
 
-При $v^2 < 1$ возможен прогроз:
-\begin{equation}
-    [\widetilde{d}_{\text{m} + 1}(1, 1), \widetilde{d}_{\text{m} + 1}(1, 2), \ldots, \widetilde{d}_{\text{m} + 1}(n, n)]^T = \mathbf{p}^T\mathbf{Z}
-\end{equation}
 
-где $\mathbf{Z} \in R^{(\text{L} - 1) \times (\frac{n(n + 1)}{2})}$, $\mathbf{Z} = [\mathbf{z}^{(11)}, \ldots, \mathbf{z}^{(nn)}]$, $\mathbf{z}^{(ij)} = [\widetilde{d}_{\text{m} - \text{L} + 2}(i, j), \ldots, \widetilde{d}_{\text{m}}(i, j)]^T$. Таким образом, получаем:
+Теперь введем матрицу $\Sigma_t^3$ следующим образом:
+
 
 \begin{equation}
-    \hat{\Sigma}_{\text{m} + 1} = [\widetilde{d}_{\text{m} + 1}(i, j)]_{i, j = 1}^{n}
+(\Sigma_t^{3})_{ij} = \dfrac{(\Sigma_t^{2})_{ij}}{\sigma_i \sigma_j}.
 \end{equation}
 
-где $\widetilde{d}_{\text{m} + 1}(i, j) = \widetilde{d}_{\text{m} + 1}(j, i)$, при $i > j$.
-\end{comment}
+\subsection{Восстановление прогноза}
+
+После прогнозирования матрицы $\Sigma_{t + 1}$ стоит задача восстановления прогноза для набора временных рядов. Для этого в каждом случае нужно решить задачу оптимизации:
+
+\begin{equation}
+    \hat{\mathbf{y}}^{t + 1} = \arg \min \limits_{\mathbf{y} \in R^n}\|\Sigma_{t + 1} - \hat{\Sigma}_{t + 1}\|_{\text{F}}^2.
+\end{equation}
+
+В силу того, что данная задача оптимизации имеет либо два решения
+либо нулевое решение, то при условии положительных значений временного ряда, решаем задачу условной оптимизации с условием: $\mathbf{y} \succ 0$.
+
+\begin{equation}
+    \hat{\mathbf{y}}^{t + 1} = \arg \min \limits_{\mathbf{y} \in R^n_+}\|\Sigma_{t + 1} - \hat{\Sigma}_{t + 1}\|_{\text{F}}^2.
+\end{equation}
 
 
 \subsection{Задача прогнозирования набора временных рядов}
@@ -225,266 +225,129 @@ d_{\text{L}}(\mathbf{x}^{(i)}, \mathbf{x}^{(j)}) & d_{\text{L} + 1}(\mathbf{x}^{
     d_{\text{acc}} = \arg\min\limits_{d \in \mathcal{F}} \sigma^2(d) = \arg\min\limits_{d \in \mathcal{F}} \|\hat{\Sigma}(d) - \Sigma(d)\|_{\text{F}}^2.
 \end{equation}
 
-Пусть $\widetilde{\mathbf{x}}^{(i)} = \mathbf{x}^{(i)} + \varepsilon_i$, $i = 1, \ldots, n$ --- зашумленный исходный набор временных рядов, где $\varepsilon_i \in R^\text{N}$. Пусть $\widetilde{\sigma}^2(d)$ --- точность прогноза матрицы попарных расстояний зашумленного набора временных рядов при использовании $d \in \mathcal{F}$. Тогда наболее устойчивый выбор функции попарных расстояний:
 
-\begin{equation}
-    d_{\text{stable}} = \arg\min\limits_{d \in \text{F}}|\widetilde{\sigma}^2(d) - \sigma^2(d)|
-\end{equation}
+\section{Вычислительный эксперимент}
 
-\section{Computational experiment}
+Целью эксперимента является сравнение предложенного способа прогнозирования временных рядов с ARIMA и LSTM. Также сравниваются различные способы вычисления матрицы попарных расстояний, путем анализа ошибки прогноза. В качестве модели для прогноза матрицы попарных расстояний также рассмотрим LSTM, ARIMA. Проведем эксперименты как на синтетических наборах временных рядов, так и на реальных. Точность прогноза будем оценивать с помощью MAPE (15) и MSE (16).
 
-Целью эксперимента является сравнение различных способов вычисления матрицы попарных расстояний, путем анализа ошибки прогноза. В качестве прогностических модели рассмотрим LSTM, ARIMA. Проведем эксперименты как на синтетических наборах временных рядов, так и на реальных. Точность прогноза будем оценивать с помощью MAPE (15) и MSE (16). 
-
-\subsection{Прогнозирование матрицы попарных расстояний}
-
-Рассмотрим три способа вычисления матрицы попарных расстояний между временными рядами. Считаем, что в каждый момент времени набор временных рядов задается матрицей $\textbf{X} \in R^{n \times L}$:
-
-
-\begin{equation}
-\textbf{X} = \left( \begin{array}{cccc}
-x^{(1)}_{t - \text{L} + 1} & x^{(1)}_{t - \text{L} + 2} & \ldots & x^{(1)}_{t} \\
-x^{(2)}_{t - \text{L} + 1} & x^{(2)}_{t - \text{L} + 2} & \ldots & x^{(2)}_{t} \\
-\ldots & \ldots & \ldots & \ldots \\
-x^{(n)}_{t - \text{L} + 1} & x^{(n)}_{t - \text{L} + 2} & \ldots & x^{(n)}_{t}.
-\end{array}\right)
-\end{equation}
-
-
-$i$-й столбец матрицы $\textbf{X}$ обозначим через вектор $\textbf{y}^{i}$. А $i$-ю строку матрицы $\textbf{X}$ обозначим через вектор $\textbf{x}^{(i)}$.   В каждый момент времени поставим в соответствие данному набору матрицу $\Sigma_t \in R^{\text{n} \times \text{n}}$, элементы которой описывают взаимосвязь различных компонент набора временных рядов. Рассмотрим три способа построения данной матрицы.
-
-\subsubsection{Способ № 1}
-
-
-\begin{equation}
-\Sigma_t^{1} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} \textbf{y}^{i} \textbf{y}^{iT}
-\end{equation}
-
-\subsubsection{Способ № 2}
-
-
-Введем вектор $\mathbf{m} \in R^{\text{n}}$ следующим образом:
-
-
-\begin{equation}
-\mathbf{m}_j = \dfrac1L \sum\limits_{i = 1}^{L} \textbf{y}^{i}_j.
-\end{equation}
-
-
-А теперь матрицу $\Sigma_t^{2}$, при построении которой, в отличие от $\Sigma_t^{1}$, процентрируем векторы $\textbf{y}^{i}$ с помощью  $\textbf{m}$: 
-
-
-\begin{equation}
-\Sigma_t^{2} = \dfrac{1}{L}\sum\limits_{i = 1}^{L} (\textbf{y}^{i} - \textbf{m}) (\textbf{y}^{i} - \textbf{m})^T
-\end{equation}
-
-\subsubsection{Способ № 3}
-
-Для каждой строки $\textbf{x}^{(j)}$, $j \in {1, \ldots, n}$ матрицы $\textbf{X}$ введем величину:
-
-
-\begin{equation}
-\sigma_j = \sqrt{\dfrac{1}{L} \sum\limits_{i = 1}^L (\textbf{x}^{(j)}_i - \textbf{m}_i)^2}.
-\end{equation}
-
-
-Теперь введем матрицу $\Sigma_t^3$ следующим образом:
-
-
-\begin{equation}
-(\Sigma_t^{3})_{ij} = \dfrac{(\Sigma_t^{2})_{ij}}{\sigma_i \sigma_j}.
-\end{equation}
-
-\subsection{Вычислительный эксперимент}
-
-Проведем эксперименты на одном синтетическом наборе временных рядов и двух реальных наборах временных рядов. 
-
-1. Синтетические данные
-
-Рассмотрим набор из $n = 4$ временных рядов представляющие собой все те же сдвинутые синусы. Длина каждого из рядов 200, а считать матрицу попарных расстояний будем по $L = 10$ значениям. Для начала, преобразуем исходные временные ряды в набор из попарных расстояний, состоящий из $\frac{n^2 + n}{2} = 10$ компонент. Проведем прогноз с помощью LSTM и ARIMA во всех трех случаях, обучая модель на первых 150 значениях временного ряда и прогнозируя следующие 50. Приведем средние ошибки прогноза:
 
 %\newpage
 
-\begin{comment}
+
+\subsection{Реальные данные.}
+
+\textbf{Прогнозирование с помощью LSTM, ARIMA.}
+
+Рассмотрим набор цен на электричество в Германии \cite{dataset}. Набор состоит из $n = 24$ высоко коррелированных временных рядов. В силу большого количество выбросов в 14 из 24 временных рядов, будем прогнозировать 10 из них. Подберем параметры ARIMA с помощью GridSearch. Также выберем оптимальный горизонт прогноза для прогноза ARIMA и LSTM с помощью метода сломанной трости. На Рис.3 показана зависимость MAPE от горизонта прогноза для LSTM и ARIMA. 
+
 \begin{figure}[h]
   \begin{minipage}{0.5\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_1_.png}
-    \caption{Временные ряды попарных расстояний при 1-ом способе подсчета $\Sigma$}
+    \includegraphics[width=\linewidth]{images/lstm_horizon.png}
   \end{minipage}\hfill
   \begin{minipage}{0.5\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_2_.png}
-    \caption{Временные ряды попарных расстояний при 2-ом способе подсчета $\Sigma$}
+    \includegraphics[width=\linewidth]{images/arima_horizon.png}
   \end{minipage}
+  \caption{Зависимость MAPE от горизонта прогнозирования LSTM, ARIMA.}
 \end{figure}
 
-\begin{figure}[h]
-  \centering
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_3_.png}
-    \caption{Временные ряды попарных расстояний при 3-ом способе подсчета $\Sigma$}
-  \end{minipage}\hfill
-\end{figure}
-\end{comment}
-
+Получаем, что оптимальный горизонт прогноза для LSTM --- 7, для ARIMA --- 12. В Таблице 2 представлены ошибки прогнозов при оптимальном горизонте прогноза.
 
 
 \begin{table}[h]
 \centering
 \begin{tabular}{|l|l|l|l|}
 \hline  
-         & $\text{MAE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAE}_{\text{ARIMA}}$\\ \hline
-${\Sigma}^1$ & 0.55 & 0.5 & 1.45 \\ \hline
-${\Sigma}^2$ & 0.17 & 0.04 & 0.57 \\ \hline
-${\Sigma}^3$ & 0.17 & 0.04 & 0.37 \\ \hline
+$\text{MAPE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAPE}_{\text{ARIMA}}$ & $\text{MSE}_{\text{ARIMA}}$ \\ \hline
+0.15 & 59.14 & 0.14 & 76.62 \\ \hline
 \end{tabular}
-\caption{Ошибки прогноза на синтетическом наборе при различных способах вычисления $\Sigma_t$.}
-\label{tab:stat}
+\caption{Ошибки прогноза LSTM и ARIMA на реальном наборе при оптимальном горизонте прогноза.}
+\label{tab:stat_}
 \end{table}
 
-Демонстрация прогноза для двух рядов из набора:
+Можем заметить, что несмотря на больший горизонт прогноза, $\text{MAPE}_{\text{ARIMA}}$ практически совпадает с $\text{MAPE}_{\text{LSTM}}$. Однако точность $\text{MSE}_{\text{LSTM}}$ лучше, чем $\text{MSE}_{\text{ARIMA}}$.
 
-\newpage
+\textbf{Прогнозирование с помощью COF.}
 
-\begin{figure}[h]
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_for_1.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_for_2.png}
-  \end{minipage}
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_for_3.png}
-  \end{minipage}
-  \caption{LSTM прогноз попарных расстояний при соответственно 1, 2, 3-ем способе подсчета $\Sigma$.}
-\end{figure}
+Матрицу попарных расстояний будем считать по $L = 10$ предыдущим значениям. При прогнозировании матрицы попарных расстояний с помощью ARIMA снова используем GridSearch оптимальных параметров. Определим оптимальный горизонт прогноза матрицы попарных расстояний для LSTM и ARIMA.
 
-\begin{figure}[h]
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_sine_1.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_sine_2.png}
-  \end{minipage}
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_sine_3.png}
-  \end{minipage}\hfill
-      \caption{ARIMA прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$}
-\end{figure}
-
-\begin{comment}
-    \begin{figure}[h]
-  \centering
+\begin{figure}[h!]
   \begin{minipage}{0.5\textwidth}
     \centering
-    \includegraphics[width=\linewidth]{images/4_sine_corr_for_3.png}
-    \caption{LSTM прогноз попарных расстояний при 3-ом способе подсчета $\Sigma$}
+    \includegraphics[width=\linewidth]{images/COF_lstm_horizon.png}
   \end{minipage}\hfill
+  \begin{minipage}{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{images/COF_arima_horizon.png}
+  \end{minipage}
+  \caption{Зависимость MAPE от горизонта прогнозирования матрицы с помощью LSTM, ARIMA.}
 \end{figure}
-\end{comment}
 
-
-2. Реальные данные 
-
-Рассмотрим уже прогнозируемый реальный набор из $n = 24$ высоко коррелированных временных рядов. Матрицу попарных расстояний будем считать по $L = 10$ предыдущим значениям. Преобразованный набор попарных расстояний состоит из $\dfrac{24^2 - 24}{2} = 276$ временных рядов. Проведем прогноз с помощью LSTM, ARIMA поделив ряд на обучающую и тестовую выборку в отношении $7 : 3$. Получаем следующие средние ошибки прогнозов:
+В обоих случаях будем прогнозировать матрицы попарных расстояний с горизонтом прогнозирования 9. В Таблице 2 указаны ошибки LSTM, ARIMA прогнозов матрицы попарных расстояний при различных способах ее подсчета. Таким образом, LSTM лучше прогнозирует матрицу $\Sigma$. Теперь по каждой спрогнозированной матрице восстановим прогноз исходного набора временных рядов.
 
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|l|l|l|}
+\begin{tabular}{|l|l|l|l|l|}
 \hline  
-         & $\text{MAE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAE}_{\text{ARIMA}}$\\ \hline
-${\Sigma}^1$ & 895.2 & 3265375.3 & 3874.4 \\ \hline
-${\Sigma}^2$ & 152.8 & 215891.3 & 135.1 \\ \hline
-${\Sigma}^3$ & 0.11 & 0.03 & 0.27 \\ \hline
+         & $\text{MAPE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAPE}_{\text{ARIMA}}$ & $\text{MSE}_{\text{ARIMA}}$\\ \hline
+${\Sigma}^1$ & \textbf{0.052} & \textbf{30112} & 0.057 & 34091 \\ \hline
+${\Sigma}^2$ & \textbf{0.990} & \textbf{466} & 1.680 & 937 \\ \hline
+${\Sigma}^3$ & \textbf{1.720} & \textbf{0.056} & 2.440 & 0.157 \\ \hline
 \end{tabular}
-\caption{Ошибки прогноза на реальном наборе при различных способах вычисления $\Sigma_t$.}
+\caption{Ошибки прогноза матрицы при различных способах вычисления $\Sigma_t$.}
 \label{tab:stat}
 \end{table}
 
+\subsection{Восстановление прогноза}
 
+Восстановим прогноз, решив условную задачу оптимизации (12). В Таблице 3 представлены ошибки восстановления прогноза. 
 
-Большие ошибки MSE в первых двух случаях связаны с наличием больших скачков в исходных данных. В силу высокой корреляции исходных рядов, ряды попарных расстояний очень схожи:
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|l|l|}
+\hline  
+         & $\text{MAPE}_{\text{LSTM}}$  & $\text{MSE}_{\text{LSTM}}$  & $\text{MAPE}_{\text{ARIMA}}$ & $\text{MSE}_{\text{ARIMA}}$\\ \hline
+${\Sigma}^1$ & 0.46 & 359.67 & \textbf{0.36} & \textbf{293.57} \\ \hline
+${\Sigma}^2$ & \textbf{0.29} & \textbf{222.46} & 0.30 & 225.41 \\ \hline
+${\Sigma}^3$ & \textbf{0.43} & \textbf{437.85} & 0.50 & 918.49 \\ \hline
+\end{tabular}
+\caption{Ошибки восстановленного прогноза при различных способах вычисления $\Sigma_t$.}
+\label{tab:stat}
+\end{table}
+
+Заметим, что и в случае LSTM и в случае ARIMA наименьшая ошибка прогноза в случае второго способы подсчета $\Sigma$. 
+
+\section{Сравнение результатов}
+
+Сравним результаты прогноза набора временных рядов с помощью ARIMA, LSTM, COF-ARIMA, COF-LSTM. Приведем результаты в Таблицу 4. 
 
 \newpage
-
-\begin{figure}[h]
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/real_corr_1.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/real_corr_2.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/real_corr_3.png}
-  \end{minipage}\hfill
-      \caption{LSTM прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$.}
-\end{figure}
-
-\begin{figure}[h]
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_real_1.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_real_2.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.33\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/arima_real_3.png}
-  \end{minipage}\hfill
-      \caption{ARIMA прогноз попарных расстояний при 1, 2, 3-ем способе подсчета $\Sigma$.}
-\end{figure}
-
-\begin{comment}
-    Приведем график средней ошибки прогноза попарных расстояний для каждого из рядов в 1-ом и 2-ом способе посчета:
-
-\begin{figure}[h]
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/1_error_ts.png}
-    \caption{Cредняя MAE прогноза попарных расстояний для каждого из рядов при 1-ом способе подсчета $\Sigma$}
-  \end{minipage}\hfill
-  \begin{minipage}{0.5\textwidth}
-    \centering
-    \includegraphics[width=\linewidth]{images/2_error_ts.png}
-    \caption{Cредняя MAE прогноза попарных расстояний для каждого из рядов при 2-ом способе подсчета $\Sigma$}
-  \end{minipage}
-\end{figure}
-
-Большая ошибка на временных рядах 18, 19 связана с их  высокой дисперсией. Прогнозируя попарные расстояния без временных рядов под номерами $18, 19$, получаем улучшение прогноза:
 
 \begin{table}[h]
 \centering
 \begin{tabular}{|l|l|l|}
-\hline
-         & MAE  & MSE  \\ \hline
-${\Sigma}^1$ & 785.7 & 1904480  \\ \hline
-${\Sigma}^2$ & 94.1 & 38195.5 \\ \hline
-${\Sigma}^3$ & 0.11 & 0.03 \\ \hline
+\hline  
+  Алгоритм & $\text{MAPE}$  & $\text{MSE}$ \\ \hline
+LSTM & \textbf{0.15} & \textbf{59.14} \\ \hline
+COF-LSTM-1 & 0.46 & 359.67\\ \hline
+COF-LSTM-2 & 0.29 & 222.46 \\ \hline
+COF-LSTM-3 & 0.43 & 437.85 \\ \hline
+ARIMA &  0.14 & 76.62 \\ \hline
+COF-ARIMA-1 & 0.36 & 293.57 \\ \hline
+COF-ARIMA-2 & 0.30 & 225.41\\ \hline
+COF-ARIMA-3 & 0.50 & 918.49 \\ \hline
 \end{tabular}
-\caption{Ошибки LSTM прогноза на реальном наборе при отказе от прогнозирования попарных расстояний рядов 18, 19.}
-\label{tab:stat2}
+\caption{Ошибки прогноза набора временных рядов различных методов.}
+\label{tab:stat}
 \end{table}
-\end{comment}
 
-\subsection{Восстановление прогноза}
+Таким образом, даже лучшие результаты COF алгоритма значительно уступают простым ARIMA, LSTM. Причиной этому служит недостаточно точное продсказание матрицы $\Sigma$.
 
+\section{Заключение}
 
-\bibliographystyle{unsrt}
-\bibliography{biblio}
+Предложили новый метод прогнозирования набора высококоррелированных временных рядов, основанного на прогнозировании матрицы попарных расстояний с помощью ARIMA и LSTM и восстановления прогноза с помощью решения задачи оптимизации. Сравнили три способа вычисления матрицы попарных расстояний. Сравнили результаты работы метода с ARIMA и LSTM. Предложенный метод уступает в точности обоим методам. Причиной этому является недостаточная точность прогнозирования матрицы. Одним из способов улучшения точности является использование других методов прогнозирования, например, генеративных моделей. 
 
-\end{document}
 \bibliographystyle{unsrt}
 \bibliography{biblio}
 
